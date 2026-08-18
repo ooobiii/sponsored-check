@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Generate the extension icon: UK-flag blue tile + white checkmark.
+"""Generate the extension icon: blue tile + white magnifying glass with a
+checkmark inside the lens (searching a job page, confirmed sponsored).
 
 Stdlib only — no PIL. Supersampled for smooth edges. Writes icons/icon*.png.
 Run: python3 scripts/make_icons.py
@@ -56,12 +57,17 @@ def make_icon(size, ss=4):
     radius = tile * 0.22
     hw = hh = tile / 2
     cx = cy = S / 2
-    thick = tile * 0.075
-    # Checkmark strokes, in S units (tile is 0.92S wide, centered).
-    seg1 = ((0.31 * S, 0.56 * S), (0.44 * S, 0.69 * S))
-    seg2 = ((0.44 * S, 0.69 * S), (0.71 * S, 0.34 * S))
-    pixels = bytearray(size * size * 4)
 
+    # Magnifying glass (white): lens ring + handle at 45 deg.
+    lcx, lcy, lr, ring = 0.42 * S, 0.44 * S, 0.20 * S, 0.045 * S
+    handle = ((0.575 * S, 0.595 * S), (0.685 * S, 0.705 * S))
+    handle_thick = 0.055 * S
+    # Checkmark inside the lens (white).
+    check = [((0.335 * S, 0.44 * S), (0.405 * S, 0.51 * S)),
+             ((0.405 * S, 0.51 * S), (0.525 * S, 0.355 * S))]
+    check_thick = 0.05 * S
+
+    pixels = bytearray(size * size * 4)
     for py in range(size):
         for px in range(size):
             r = g = b = a = 0.0
@@ -72,14 +78,14 @@ def make_icon(size, ss=4):
                     a_t = clamp01(0.5 - sd_rounded_box(x, y, cx, cy, hw, hh, radius))
                     if a_t <= 0:
                         continue
-                    d = min(seg_dist(x, y, *seg1), seg_dist(x, y, *seg2))
-                    a_c = clamp01(0.5 - (d - thick / 2))
-                    cr = BLUE[0] + (WHITE[0] - BLUE[0]) * a_c
-                    cg = BLUE[1] + (WHITE[1] - BLUE[1]) * a_c
-                    cb = BLUE[2] + (WHITE[2] - BLUE[2]) * a_c
-                    r += cr * a_t
-                    g += cg * a_t
-                    b += cb * a_t
+                    d_ring = abs(math.hypot(x - lcx, y - lcy) - lr) - ring / 2
+                    a_ring = clamp01(0.5 - d_ring)
+                    a_handle = clamp01(0.5 - (seg_dist(x, y, *handle) - handle_thick / 2))
+                    a_check = max(clamp01(0.5 - (seg_dist(x, y, *s) - check_thick / 2)) for s in check)
+                    a_w = max(a_ring, a_handle, a_check)
+                    r += (BLUE[0] + (WHITE[0] - BLUE[0]) * a_w) * a_t
+                    g += (BLUE[1] + (WHITE[1] - BLUE[1]) * a_w) * a_t
+                    b += (BLUE[2] + (WHITE[2] - BLUE[2]) * a_w) * a_t
                     a += a_t
             n = ss * ss
             i = (py * size + px) * 4
