@@ -1,5 +1,5 @@
 // Sponsored Check — service worker: weekly index refresh + manual analyze action.
-const INDEX_URL = "https://raw.githubusercontent.com/<OWNER>/<REPO>/main/sponsors.json";
+const INDEX_URL = "https://raw.githubusercontent.com/ooobiii/sponsored-check/main/sponsors.json";
 const ALARM = "sponsor-index-refresh";
 
 async function refreshIndex() {
