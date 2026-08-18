@@ -181,8 +181,10 @@
 
   // ponytail: exact-match ceiling (brand vs legal entity, e.g. "Bending Spoons"
   // vs "Bending Spoons Operations S.p.A. UK Branch"). Token-subset fallback:
-  // every significant token of the shorter name must appear in the key.
-  // Ceiling: two distinct companies sharing a name. Upgrade: curated aliases.
+  // every significant token of the shorter name must appear in the key. Single
+  // tokens allowed — "Accenture" must hit "accenture uk"; errs toward amber,
+  // which is the right bias (false red is worse than false amber). Ceiling: an
+  // unrelated licensed company sharing a name token. Upgrade: curated aliases.
   let tokenCache = null; // Map(key -> significant tokens), built once per page
   function significantTokens(s) {
     return s.split(/\s+/).filter((t) => t.length >= 3);
@@ -195,7 +197,7 @@
       for (const k of Object.keys(sponsors)) tokenCache.set(k, significantTokens(k));
     }
     const want = significantTokens(key);
-    if (want.length < 2) return false;
+    if (!want.length) return false;
     for (const [k, tokens] of tokenCache) {
       if (tokens.length > want.length + 4) continue;
       if (want.every((t) => tokens.includes(t))) return true;
