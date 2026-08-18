@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the extension icon: soft-rounded Union Jack with a rimmed magnifying
-glass over the top-right.
+"""Generate the extension icon: soft-rounded Union Jack.
 
 Stdlib only — no PIL. Supersampled for smooth edges. Writes icons/icon*.png.
 Run: python3 scripts/make_icons.py
@@ -13,7 +12,6 @@ import zlib
 BLUE = (1, 33, 105)  # UK flag blue #012169
 RED = (200, 16, 46)  # UK flag red #C8102E
 WHITE = (255, 255, 255)
-GREEN = (26, 127, 55)  # sponsorship green #1a7f37
 SQRT2 = math.sqrt(2.0)
 
 
@@ -44,15 +42,6 @@ def sd_rounded_box(x, y, cx, cy, hw, hh, r):
     return min(max(qx, qy), 0.0) + math.hypot(max(qx, 0.0), max(qy, 0.0)) - r
 
 
-def seg_dist(px, py, a, b):
-    ax, ay = a
-    bx, by = b
-    dx, dy = bx - ax, by - ay
-    denom = dx * dx + dy * dy
-    t = clamp01(((px - ax) * dx + (py - ay) * dy) / denom)
-    return math.hypot(px - (ax + dx * t), py - (ay + dy * t))
-
-
 def make_icon(size, ss=4):
     S = size * ss
 
@@ -63,13 +52,6 @@ def make_icon(size, ss=4):
     # Union Jack bands (centred for the icon).
     ws, rs = 0.11 * S, 0.05 * S  # Saltire white / red widths
     wc, rc = 0.09 * S, 0.045 * S  # St George white / red widths
-
-    # Badge: white circle bottom-right with a bigger green checkmark inside.
-    bcx, bcy = 0.77 * S, 0.77 * S
-    br = 0.19 * S
-    check = [((0.72 * S, 0.80 * S), (0.755 * S, 0.845 * S)),
-             ((0.755 * S, 0.845 * S), (0.84 * S, 0.71 * S))]
-    check_w = 0.055 * S
 
     pixels = bytearray(size * size * 4)
     for py in range(size):
@@ -93,26 +75,14 @@ def make_icon(size, ss=4):
                         clamp01(0.5 - (d_cross - rc / 2)),
                     )
 
-                    # badge + checkmark
-                    dist = math.hypot(x - bcx, y - bcy)
-                    a_badge = clamp01(0.5 - (dist - br))
-                    a_check = max(
-                        clamp01(0.5 - (seg_dist(x, y, *s) - check_w / 2)) for s in check
-                    )
-
                     # flag colour
                     cr, cg, cb = BLUE
                     if a_w > 0:
                         cr, cg, cb = WHITE
                     if a_r > 0:
                         cr, cg, cb = RED
-                    # badge + check over the flag
-                    if a_badge > 0:
-                        cr, cg, cb = WHITE
-                    if a_check > 0:
-                        cr, cg, cb = GREEN
 
-                    alpha = max(a_flag, a_badge)
+                    alpha = a_flag
                     if alpha <= 0:
                         continue
                     r_acc += cr * alpha
