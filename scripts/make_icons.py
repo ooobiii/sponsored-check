@@ -49,20 +49,20 @@ def seg_dist(px, py, a, b):
 def make_icon(size, ss=4):
     S = size * ss
 
-    # Bubbly flag blob: union of circles in a rough 6x6 grid.
-    fc = (0.44 * S, 0.54 * S)  # flag centre
-    step = 0.17 * S
-    r = 0.155 * S
+    # Bubbly flag blob: union of circles in a rough 6x6 grid, inset to fit the
+    # canvas (outer bubbles poke out by their radius, so centres start at 0.14S).
+    step = 0.144 * S
+    r = 0.135 * S
     bubbles = []
     for i in range(6):
         for j in range(6):
-            bubbles.append((fc[0] + (i - 2.5) * step, fc[1] + (j - 2.5) * step, r))
+            bubbles.append(((0.14 + i * 0.144) * S, (0.14 + j * 0.144) * S, r))
 
     # Saltire: two diagonal bands (white, then red inset), through the centre.
-    wx = 0.115 * S  # white band half-width... use full width
-    rx = 0.05 * S  # red band full width
-    c1 = fc[0] - fc[1]
-    c2 = fc[0] + fc[1]
+    wx = 0.115 * S  # white band width
+    rx = 0.05 * S  # red band width
+    c1 = 0.0  # fc_x - fc_y  (flag centre at 0.5, 0.5)
+    c2 = 1.0 * S  # fc_x + fc_y
 
     def xband(x, y):
         return min(abs((x - y) - c1) / SQRT2, abs((x + y) - c2) / SQRT2)
