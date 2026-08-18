@@ -26,11 +26,24 @@
     /welcometothejungle\.com\/(?:[a-z]{2}\/)?jobs\//,
     /oraclecloud\.com\/hcmUI\/CandidateExperience\/.*\/job\/\d+/,
     /teamtailor\.com\/jobs\/\d+/,
-    // Generic last resort for platforms without JSON-LD — /jobs/<id> or
-    // /job/<id> shapes. ponytail: can false-positive on non-job pages sharing
-    // that shape; dismissible, rare, and JSON-LD usually fires first anyway.
-    /\/jobs\/\d+|\/job\/\d+/,
   ];
+
+  const NON_JOB_SEGMENTS = new Set([
+    "apply", "search", "results", "list", "all", "overview", "careers",
+    "faq", "contact", "privacy", "cookies", "help", "login", "signup",
+    "blog", "news", "jobs", "view",
+  ]);
+
+  // Generic last resort: /jobs/<id> or /positions/<id> — ATS job IDs are often
+  // alphanumeric (Sky: t-R0054677, SuccessFactors, Workday). Excludes common
+  // non-job segments. ponytail: false-positives on odd pages sharing the shape;
+  // dismissible, and JSON-LD usually fires first anyway.
+  function genericJobUrl() {
+    const m = location.pathname.match(/\/(?:jobs|positions)\/([^/?#]+)/);
+    if (!m) return false;
+    const seg = m[1].toLowerCase();
+    return seg.length >= 3 && !NON_JOB_SEGMENTS.has(seg);
+  }
 
   function hasJobPostingSchema() {
     for (const s of document.querySelectorAll('script[type="application/ld+json"]')) {
@@ -53,7 +66,7 @@
     // URL fast-path + universal signal: JobPosting JSON-LD is emitted by every
     // job platform (Teamtailor, Oracle HCM, Workday, Greenhouse, Workable...),
     // so newly-encountered platforms work once their host is allowlisted.
-    return JOB_RE.some((re) => re.test(location.href)) || hasJobPostingSchema();
+    return JOB_RE.some((re) => re.test(location.href)) || genericJobUrl() || hasJobPostingSchema();
   }
 
   // Platform/placeholder site names are NOT employers — looking one up against
