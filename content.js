@@ -26,6 +26,10 @@
     /welcometothejungle\.com\/(?:[a-z]{2}\/)?jobs\//,
     /oraclecloud\.com\/hcmUI\/CandidateExperience\/.*\/job\/\d+/,
     /teamtailor\.com\/jobs\/\d+/,
+    // Generic last resort for platforms without JSON-LD — /jobs/<id> or
+    // /job/<id> shapes. ponytail: can false-positive on non-job pages sharing
+    // that shape; dismissible, rare, and JSON-LD usually fires first anyway.
+    /\/jobs\/\d+|\/job\/\d+/,
   ];
 
   function hasJobPostingSchema() {
