@@ -82,13 +82,16 @@
     "greenhouse.com", "lever.co", "ashbyhq.com", "recruitee.com",
     "pinpointapps.com", "breezy.hr", "homerun.co", "smartrecruiters.com",
     "jobvite.com", "icims.com", "taleo.net", "personio.de", "dover.com",
+    "facebook.com", "linkedin.com", "twitter.com", "x.com", "instagram.com",
+    "youtube.com", "tiktok.com", "glassdoor.com",
   ]);
 
   // ponytail: heuristic for sites with no structured data — derive the employer
   // from the domain (jobs.bendingspoons.com -> "Bending Spoons"). Ceiling:
   // brand != legal entity and odd hosts; the token-subset lookup absorbs that.
-  function companyFromDomain() {
-    const parts = location.hostname.toLowerCase().replace(/^www\./, "").split(".");
+  function companyFromDomain(host) {
+    if (!host) host = location.hostname.toLowerCase().replace(/^www\./, "");
+    const parts = host.split(".");
     while (parts.length > 2 && /^(jobs|careers|career|apply|join|recruiting|hcm)$/.test(parts[0])) parts.shift();
     const registrable = parts.slice(-2).join(".");
     if (PLATFORM_HOSTS.has(registrable)) return null;
@@ -110,6 +113,12 @@
     // ponytail: og:site_name is often the careers platform, not the employer —
     // blacklist instead of trusting it. Upgrade: site-specific selectors.
     if (siteName && !PLATFORM_NAMES.has(normalizeName(siteName))) return siteName;
+    // og:url often carries the employer's careers domain even when the page is
+    // an ATS shell (iCIMS: careers-kingfisher2.icims.com -> careers.kingfisher.com).
+    const ogUrl = document.querySelector('meta[property="og:url"]')?.content;
+    if (ogUrl) {
+      try { const c = companyFromDomain(new URL(ogUrl).hostname); if (c) return c; } catch {}
+    }
     return companyFromDomain();
   }
 
@@ -194,6 +203,9 @@
     return false;
   }
 
+  // SPA shells hydrate structured data late (iCIMS, Next.js) — retry once
+  // before giving up, so late JSON-LD still resolves.
+  let retried = false;
   function run(force) {
     if (!force && !isJobPage()) return;
     chrome.storage.local.get("enabled", ({ enabled }) => {
@@ -202,7 +214,10 @@
       const v = verdict(pageText());
       if (v !== "NO_SIGNAL") return showBanner(v);
       const company = findCompany();
-      if (!company) return showBanner("UNKNOWN");
+      if (!company) {
+        if (!retried) { retried = true; setTimeout(() => run(force), 1500); return; }
+        return showBanner("UNKNOWN");
+      }
       getSponsors((sponsors) => {
         if (!sponsors) return showBanner("UNKNOWN");
         showBanner(lookupSponsor(sponsors, company) ? "MAY_SPONSOR" : "NOT_SPONSORED");
