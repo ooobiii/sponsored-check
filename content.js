@@ -64,6 +64,28 @@
     "icims", "taleo", "bamboo hr",
   ]);
 
+  const PLATFORM_HOSTS = new Set([
+    "teamtailor.com", "oraclecloud.com", "workday.com", "myworkdayjobs.com",
+    "greenhouse.com", "lever.co", "ashbyhq.com", "recruitee.com",
+    "pinpointapps.com", "breezy.hr", "homerun.co", "smartrecruiters.com",
+    "jobvite.com", "icims.com", "taleo.net", "personio.de", "dover.com",
+  ]);
+
+  // ponytail: heuristic for sites with no structured data — derive the employer
+  // from the domain (jobs.bendingspoons.com -> "Bending Spoons"). Ceiling:
+  // brand != legal entity and odd hosts; the token-subset lookup absorbs that.
+  function companyFromDomain() {
+    const parts = location.hostname.toLowerCase().replace(/^www\./, "").split(".");
+    while (parts.length > 2 && /^(jobs|careers|career|apply|join|recruiting|hcm)$/.test(parts[0])) parts.shift();
+    const registrable = parts.slice(-2).join(".");
+    if (PLATFORM_HOSTS.has(registrable)) return null;
+    const last = parts[parts.length - 1];
+    const brandIdx = /^(uk|au|nz|za|ie|in|sg|my|jp)$/.test(last) ? parts.length - 3 : parts.length - 2;
+    const brand = parts[brandIdx];
+    if (!brand || brand.length < 3 || /^(co|com|org|net|io|de|it|fr)$/.test(brand)) return null;
+    return brand.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
   function findCompany() {
     for (const s of document.querySelectorAll('script[type="application/ld+json"]')) {
       let data;
@@ -74,8 +96,8 @@
     const siteName = document.querySelector('meta[property="og:site_name"]')?.content;
     // ponytail: og:site_name is often the careers platform, not the employer —
     // blacklist instead of trusting it. Upgrade: site-specific selectors.
-    if (siteName && PLATFORM_NAMES.has(normalizeName(siteName))) return null;
-    return siteName || null;
+    if (siteName && !PLATFORM_NAMES.has(normalizeName(siteName))) return siteName;
+    return companyFromDomain();
   }
 
   // textContent via treewalker: no layout reflow (innerText is slow on heavy
@@ -135,6 +157,30 @@
     });
   }
 
+  // ponytail: exact-match ceiling (brand vs legal entity, e.g. "Bending Spoons"
+  // vs "Bending Spoons Operations S.p.A. UK Branch"). Token-subset fallback:
+  // every significant token of the shorter name must appear in the key.
+  // Ceiling: two distinct companies sharing a name. Upgrade: curated aliases.
+  let tokenCache = null; // Map(key -> significant tokens), built once per page
+  function significantTokens(s) {
+    return s.split(/\s+/).filter((t) => t.length >= 3);
+  }
+  function lookupSponsor(sponsors, company) {
+    const key = normalizeName(company);
+    if (sponsors[key]) return true;
+    if (!tokenCache) {
+      tokenCache = new Map();
+      for (const k of Object.keys(sponsors)) tokenCache.set(k, significantTokens(k));
+    }
+    const want = significantTokens(key);
+    if (want.length < 2) return false;
+    for (const [k, tokens] of tokenCache) {
+      if (tokens.length > want.length + 4) continue;
+      if (want.every((t) => tokens.includes(t))) return true;
+    }
+    return false;
+  }
+
   function run(force) {
     if (!force && !isJobPage()) return;
     chrome.storage.local.get("enabled", ({ enabled }) => {
@@ -146,7 +192,7 @@
       if (!company) return showBanner("UNKNOWN");
       getSponsors((sponsors) => {
         if (!sponsors) return showBanner("UNKNOWN");
-        showBanner(sponsors[normalizeName(company)] ? "MAY_SPONSOR" : "NOT_SPONSORED");
+        showBanner(lookupSponsor(sponsors, company) ? "MAY_SPONSOR" : "NOT_SPONSORED");
       });
     });
   }
