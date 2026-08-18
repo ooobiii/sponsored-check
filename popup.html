@@ -37,6 +37,9 @@
     color:var(--muted); text-decoration:none; font-size:12px; padding:6px; border-radius:6px;
     transition:background .15s,color .15s; }
   .bmac:hover { background:var(--hover); color:var(--fg); }
+  .report { display:block; text-align:center; color:var(--muted); font-size:11px;
+    text-decoration:none; margin-top:2px; padding:4px; border-radius:6px; transition:background .15s,color .15s; }
+  .report:hover { background:var(--hover); color:var(--fg); text-decoration:underline; }
   #error { color:#cf222e; margin:10px 0 0; font-size:12px; }
   body.dark #error { color:#ff7b72; }
 </style>
@@ -53,6 +56,7 @@
   </label>
   <button class="primary" id="analyse">Analyse this page</button>
   <p id="error" hidden>Couldn't analyse this page.</p>
+  <a class="report" href="https://github.com/ooobiii/sponsored-check/issues/new?template=false-verdict.md" target="_blank" rel="noopener">Report an issue</a>
   <a class="bmac" href="https://buymeacoffee.com/ooobiii" target="_blank" rel="noopener">&#9749; Buy me a coffee</a>
   <script src="popup.js"></script>
 </body>
