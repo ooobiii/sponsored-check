@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the extension icon: green rounded tile + white dot (the brand mark).
+"""Generate the extension icon: UK-flag blue tile + white checkmark.
 
 Stdlib only — no PIL. Supersampled for smooth edges. Writes icons/icon*.png.
 Run: python3 scripts/make_icons.py
@@ -9,7 +9,7 @@ import os
 import struct
 import zlib
 
-GREEN = (26, 127, 55)  # #1a7f37
+BLUE = (1, 33, 105)  # UK flag blue (#012169)
 WHITE = (255, 255, 255)
 
 
@@ -40,6 +40,15 @@ def sd_rounded_box(x, y, cx, cy, hw, hh, r):
     return min(max(qx, qy), 0.0) + math.hypot(max(qx, 0.0), max(qy, 0.0)) - r
 
 
+def seg_dist(px, py, a, b):
+    ax, ay = a
+    bx, by = b
+    dx, dy = bx - ax, by - ay
+    denom = dx * dx + dy * dy
+    t = clamp01(((px - ax) * dx + (py - ay) * dy) / denom)
+    return math.hypot(px - (ax + dx * t), py - (ay + dy * t))
+
+
 def make_icon(size, ss=4):
     S = size * ss
     tile = S * 0.92
@@ -47,7 +56,10 @@ def make_icon(size, ss=4):
     radius = tile * 0.22
     hw = hh = tile / 2
     cx = cy = S / 2
-    dot_r = tile * 0.21
+    thick = tile * 0.075
+    # Checkmark strokes, in S units (tile is 0.92S wide, centered).
+    seg1 = ((0.31 * S, 0.56 * S), (0.44 * S, 0.69 * S))
+    seg2 = ((0.44 * S, 0.69 * S), (0.71 * S, 0.34 * S))
     pixels = bytearray(size * size * 4)
 
     for py in range(size):
@@ -60,10 +72,11 @@ def make_icon(size, ss=4):
                     a_t = clamp01(0.5 - sd_rounded_box(x, y, cx, cy, hw, hh, radius))
                     if a_t <= 0:
                         continue
-                    a_d = clamp01(0.5 - (math.hypot(x - cx, y - cy) - dot_r))
-                    cr = GREEN[0] + (WHITE[0] - GREEN[0]) * a_d
-                    cg = GREEN[1] + (WHITE[1] - GREEN[1]) * a_d
-                    cb = GREEN[2] + (WHITE[2] - GREEN[2]) * a_d
+                    d = min(seg_dist(x, y, *seg1), seg_dist(x, y, *seg2))
+                    a_c = clamp01(0.5 - (d - thick / 2))
+                    cr = BLUE[0] + (WHITE[0] - BLUE[0]) * a_c
+                    cg = BLUE[1] + (WHITE[1] - BLUE[1]) * a_c
+                    cb = BLUE[2] + (WHITE[2] - BLUE[2]) * a_c
                     r += cr * a_t
                     g += cg * a_t
                     b += cb * a_t
