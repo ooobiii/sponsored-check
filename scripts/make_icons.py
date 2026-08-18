@@ -13,7 +13,7 @@ import zlib
 BLUE = (1, 33, 105)  # UK flag blue #012169
 RED = (200, 16, 46)  # UK flag red #C8102E
 WHITE = (255, 255, 255)
-NAVY = (12, 30, 62)  # magnifier rim/handle
+GREEN = (26, 127, 55)  # sponsorship green #1a7f37
 SQRT2 = math.sqrt(2.0)
 
 
@@ -64,12 +64,12 @@ def make_icon(size, ss=4):
     ws, rs = 0.11 * S, 0.05 * S  # Saltire white / red widths
     wc, rc = 0.09 * S, 0.045 * S  # St George white / red widths
 
-    # Magnifier: navy rim + white ring + navy handle, over the top-right.
-    lcx, lcy, lr = 0.68 * S, 0.31 * S, 0.16 * S
-    ring_w = 0.045 * S
-    rim_w = 0.012 * S
-    handle = ((0.79 * S, 0.42 * S), (0.875 * S, 0.505 * S))
-    handle_w = 0.045 * S
+    # Badge: white circle at the centre with a green checkmark inside.
+    bcx = bcy = S / 2
+    br = 0.165 * S
+    check = [((0.445 * S, 0.52 * S), (0.49 * S, 0.565 * S)),
+             ((0.49 * S, 0.565 * S), (0.57 * S, 0.465 * S))]
+    check_w = 0.042 * S
 
     pixels = bytearray(size * size * 4)
     for py in range(size):
@@ -93,11 +93,12 @@ def make_icon(size, ss=4):
                         clamp01(0.5 - (d_cross - rc / 2)),
                     )
 
-                    # magnifier pieces
-                    dist = math.hypot(x - lcx, y - lcy)
-                    a_ring = clamp01(0.5 - (abs(dist - lr) - ring_w / 2))
-                    a_rim = clamp01(0.5 - (abs(dist - (lr + ring_w / 2 + rim_w / 2)) - rim_w / 2))
-                    a_handle = clamp01(0.5 - (seg_dist(x, y, *handle) - handle_w / 2))
+                    # badge + checkmark
+                    dist = math.hypot(x - bcx, y - bcy)
+                    a_badge = clamp01(0.5 - (dist - br))
+                    a_check = max(
+                        clamp01(0.5 - (seg_dist(x, y, *s) - check_w / 2)) for s in check
+                    )
 
                     # flag colour
                     cr, cg, cb = BLUE
@@ -105,13 +106,13 @@ def make_icon(size, ss=4):
                         cr, cg, cb = WHITE
                     if a_r > 0:
                         cr, cg, cb = RED
-                    # glass over the flag
-                    if a_rim > 0 or a_handle > 0:
-                        cr, cg, cb = NAVY
-                    elif a_ring > 0:
+                    # badge + check over the flag
+                    if a_badge > 0:
                         cr, cg, cb = WHITE
+                    if a_check > 0:
+                        cr, cg, cb = GREEN
 
-                    alpha = max(a_flag, a_ring, a_rim, a_handle)
+                    alpha = max(a_flag, a_badge)
                     if alpha <= 0:
                         continue
                     r_acc += cr * alpha
