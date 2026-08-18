@@ -8,8 +8,14 @@ function applyTheme(theme) {
   themeBtn.textContent = theme === "dark" ? "\u2600" : "\u263e";
 }
 
+function applyEnabled() {
+  // grey dot + switch visually reflect the off state
+  body.classList.toggle("off", !toggle.checked);
+}
+
 chrome.storage.local.get(["enabled", "theme"], ({ enabled, theme }) => {
   toggle.checked = enabled !== false; // default: on
+  applyEnabled();
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   applyTheme(theme || (prefersDark ? "dark" : "light"));
 });
@@ -21,6 +27,7 @@ themeBtn.addEventListener("click", () => {
 });
 
 toggle.addEventListener("change", () => {
+  applyEnabled();
   chrome.storage.local.set({ enabled: toggle.checked });
 });
 
