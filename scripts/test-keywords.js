@@ -17,6 +17,8 @@ const cases = [
 for (const [text, want] of cases) {
   assert.strictEqual(verdict(text), want, text);
 }
-assert.strictEqual(normalizeName("Acme  Corp, Ltd."), "acme corp ltd");
-assert.strictEqual(normalizeName("  BARCLAYS BANK UK PLC "), "barclays bank uk plc");
+assert.strictEqual(normalizeName("Acme  Corp, Ltd."), "acme");
+assert.strictEqual(normalizeName("  BARCLAYS BANK UK PLC "), "barclays bank uk");
+assert.strictEqual(normalizeName("CX Group plc"), "cx");
+assert.strictEqual(normalizeName("Deloitte LLP"), "deloitte");
 console.log(`ok — ${cases.length} verdict cases + normalization`);

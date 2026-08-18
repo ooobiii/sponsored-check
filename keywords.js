@@ -34,8 +34,14 @@ function verdict(text) {
   return "NO_SIGNAL";
 }
 
+// Strip legal suffixes so parent/legal-entity variants collapse to one key
+// ("CX Group plc" and "CX Ltd" both -> "cx"). Mirrored in update_sponsors.py.
+const SUFFIX_RE = /\s+(?:ltd|limited|plc|llp|llc|inc|corp|corporation|co|group|holdings|holding)$/;
+
 function normalizeName(name) {
-  return String(name).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  let n = String(name).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  for (let i = 0; i < 4 && SUFFIX_RE.test(n); i++) n = n.replace(SUFFIX_RE, "").trim();
+  return n;
 }
 
 if (typeof module !== "undefined") module.exports = { verdict, normalizeName };

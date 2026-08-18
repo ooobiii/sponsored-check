@@ -31,6 +31,14 @@
     return JOB_RE.some((re) => re.test(location.href));
   }
 
+  // Platform/placeholder site names are NOT employers — looking one up against
+  // the register fabricates a wrong verdict; better to say UNKNOWN.
+  const PLATFORM_NAMES = new Set([
+    "oracle", "cx", "candidate experience", "careers", "workday",
+    "successfactors", "greenhouse", "lever", "smartrecruiters", "jobvite",
+    "icims", "taleo", "bamboo hr",
+  ]);
+
   function findCompany() {
     for (const s of document.querySelectorAll('script[type="application/ld+json"]')) {
       let data;
@@ -38,8 +46,11 @@
       const org = deepFind(data, "hiringOrganization");
       if (org && org.name) return org.name;
     }
-    // ponytail: weak fallback (og:site_name is the site, not always the company).
-    return document.querySelector('meta[property="og:site_name"]')?.content || null;
+    const siteName = document.querySelector('meta[property="og:site_name"]')?.content;
+    // ponytail: og:site_name is often the careers platform, not the employer —
+    // blacklist instead of trusting it. Upgrade: site-specific selectors.
+    if (siteName && PLATFORM_NAMES.has(normalizeName(siteName))) return null;
+    return siteName || null;
   }
 
   // textContent via treewalker: no layout reflow (innerText is slow on heavy
@@ -81,7 +92,7 @@
     }
     el.dataset.state = state;
     el.querySelector("#sc-text").textContent = {
-      LOADING: "Checking sponsorship\u2026",
+      LOADING: "Analysing\u2026",
       SPONSORED: "This role appears to offer visa sponsorship",
       NOT_SPONSORED: "No visa sponsorship found for this role",
       MAY_SPONSOR: "Company is a licensed sponsor \u2014 role doesn't state sponsorship",
@@ -103,18 +114,13 @@
     if (!force && !isJobPage()) return;
     chrome.storage.local.get("enabled", ({ enabled }) => {
       if (enabled === false) return; // switched off in the popup
-      if (force) showBanner("LOADING"); // instant feedback for manual analyze
+      showBanner("LOADING"); // auto AND manual — always resolves to a verdict below
       const v = verdict(pageText());
       if (v !== "NO_SIGNAL") return showBanner(v);
       const company = findCompany();
-      if (!company) {
-        // ponytail: auto stays silent, but manual MUST resolve the LOADING
-        // state — returning here left "Checking…" hanging forever.
-        if (force) showBanner("UNKNOWN");
-        return;
-      }
+      if (!company) return showBanner("UNKNOWN");
       getSponsors((sponsors) => {
-        if (!sponsors) { if (force) showBanner("UNKNOWN"); return; }
+        if (!sponsors) return showBanner("UNKNOWN");
         showBanner(sponsors[normalizeName(company)] ? "MAY_SPONSOR" : "NOT_SPONSORED");
       });
     });

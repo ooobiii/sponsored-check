@@ -13,8 +13,21 @@ import urllib.request
 PAGE_URL = "https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers"
 
 
+# Strip legal suffixes so parent/legal-entity variants collapse to one key.
+# Mirrors normalizeName() in keywords.js — keep in sync.
+SUFFIX_RE = re.compile(
+    r"\s+(?:ltd|limited|plc|llp|llc|inc|corp|corporation|co|group|holdings|holding)$"
+)
+
+
 def normalize(name):
-    return re.sub(r"[^a-z0-9]+", " ", name.lower()).strip()
+    n = re.sub(r"[^a-z0-9]+", " ", name.lower()).strip()
+    for _ in range(4):
+        m = SUFFIX_RE.search(n)
+        if not m:
+            break
+        n = n[: m.start()].strip()
+    return n
 
 
 def main():
@@ -46,8 +59,9 @@ def main():
 
 
 if __name__ == "__main__":
-    # ponytail: exact-normalized match only; parent companies/agencies/umbrellas
-    # won't match and will read as NOT_SPONSORED. Ceiling: mismatch cases.
+    # ponytail: suffix-stripped exact match only; t/a trading names and
+    # unrelated-but-similar names still miss. Ceiling: mismatch cases.
     # Upgrade: token-overlap scoring with a threshold before trusting a hit.
-    assert normalize("Acme  Corp, Ltd.") == "acme corp ltd"
+    assert normalize("Acme  Corp, Ltd.") == "acme"
+    assert normalize("CX Group Plc") == "cx"
     main()
