@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body{width:240px;margin:0;padding:14px;font:13px/1.4 system-ui,-apple-system,sans-serif;color:#24292f;background:#fff}
+  h1{font-size:13px;font-weight:600;margin:0 0 12px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .switch{position:relative;width:34px;height:20px;flex:none}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:#d1d5da;border-radius:999px;transition:.15s}
+  .slider:before{content:"";position:absolute;width:16px;height:16px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.15s}
+  input:checked + .slider{background:#1a7f37}
+  input:checked + .slider:before{transform:translateX(14px)}
+  button{width:100%;margin-top:12px;padding:8px 0;border:1px solid #d1d5da;border-radius:8px;background:#fff;cursor:pointer;font:inherit;color:#24292f}
+  button:hover{background:#f6f8fa}
+</style>
+</head>
+<body>
+  <h1>Sponsored Check</h1>
+  <label class="row">
+    <span>Enabled</span>
+    <span class="switch"><input type="checkbox" id="enabled"><span class="slider"></span></span>
+  </label>
+  <button id="analyze">Analyze this page</button>
+  <p id="error" hidden style="color:#cf222e;margin:10px 0 0;font-size:12px">Couldn't analyze this page.</p>
+  <script src="popup.js"></script>
+</body>
+</html>

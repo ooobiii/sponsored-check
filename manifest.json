@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Sponsored Check",
+  "version": "0.1.0",
+  "description": "Shows whether a UK job posting offers visa sponsorship.",
+  "permissions": ["activeTab", "alarms", "scripting", "storage"],
+  "host_permissions": ["https://raw.githubusercontent.com/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Sponsored Check", "default_popup": "popup.html" },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.linkedin.com/*",
+        "https://*.indeed.co.uk/*",
+        "https://uk.indeed.com/*",
+        "https://www.reed.co.uk/*",
+        "https://*.glassdoor.co.uk/*",
+        "https://*.otta.com/*",
+        "https://*.welcome2thejungle.com/*",
+        "https://*.welcometothejungle.com/*"
+      ],
+      "js": ["keywords.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
