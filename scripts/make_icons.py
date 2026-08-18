@@ -64,12 +64,12 @@ def make_icon(size, ss=4):
     ws, rs = 0.11 * S, 0.05 * S  # Saltire white / red widths
     wc, rc = 0.09 * S, 0.045 * S  # St George white / red widths
 
-    # Badge: white circle at the centre with a green checkmark inside.
-    bcx = bcy = S / 2
-    br = 0.165 * S
-    check = [((0.445 * S, 0.52 * S), (0.49 * S, 0.565 * S)),
-             ((0.49 * S, 0.565 * S), (0.57 * S, 0.465 * S))]
-    check_w = 0.042 * S
+    # Badge: white circle bottom-right with a bigger green checkmark inside.
+    bcx, bcy = 0.77 * S, 0.77 * S
+    br = 0.19 * S
+    check = [((0.72 * S, 0.80 * S), (0.755 * S, 0.845 * S)),
+             ((0.755 * S, 0.845 * S), (0.84 * S, 0.71 * S))]
+    check_w = 0.055 * S
 
     pixels = bytearray(size * size * 4)
     for py in range(size):
