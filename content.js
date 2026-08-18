@@ -24,6 +24,7 @@
     /otta\.com\/jobs\//,
     /welcome2thejungle\.com\/(?:[a-z]{2}\/)?jobs\//,
     /welcometothejungle\.com\/(?:[a-z]{2}\/)?jobs\//,
+    /oraclecloud\.com\/hcmUI\/CandidateExperience\/.*\/job\/\d+/,
   ];
 
   function isJobPage() {
@@ -39,6 +40,23 @@
     }
     // ponytail: weak fallback (og:site_name is the site, not always the company).
     return document.querySelector('meta[property="og:site_name"]')?.content || null;
+  }
+
+  // textContent via treewalker: no layout reflow (innerText is slow on heavy
+  // pages), skips script/style noise. Cap 500k chars — footer-only disclaimers
+  // past the cap are missed. Upgrade: scan the description container first.
+  function pageText() {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const parts = [];
+    let len = 0;
+    for (let node = walker.nextNode(); node && len < 500000; node = walker.nextNode()) {
+      const tag = node.parentElement && node.parentElement.tagName;
+      if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") continue;
+      const t = node.textContent;
+      parts.push(t);
+      len += t.length;
+    }
+    return parts.join(" ");
   }
 
   function deepFind(node, key) {
@@ -67,7 +85,18 @@
       SPONSORED: "This role appears to offer visa sponsorship",
       NOT_SPONSORED: "No visa sponsorship found for this role",
       MAY_SPONSOR: "Company is a licensed sponsor \u2014 role doesn't state sponsorship",
+      UNKNOWN: "Couldn't determine sponsorship for this page",
     }[state];
+  }
+
+  // Read the index once per page; repeat analyzes hit memory, not storage.
+  let sponsorCache = null;
+  function getSponsors(cb) {
+    if (sponsorCache !== null) return cb(sponsorCache);
+    chrome.storage.local.get("sponsors", ({ sponsors }) => {
+      sponsorCache = sponsors ?? null;
+      cb(sponsorCache);
+    });
   }
 
   function run(force) {
@@ -75,17 +104,17 @@
     chrome.storage.local.get("enabled", ({ enabled }) => {
       if (enabled === false) return; // switched off in the popup
       if (force) showBanner("LOADING"); // instant feedback for manual analyze
-      const v = verdict(document.body.innerText || "");
+      const v = verdict(pageText());
       if (v !== "NO_SIGNAL") return showBanner(v);
       const company = findCompany();
-      // ponytail: no company -> no banner. Silent beats a fabricated verdict; the
-      // off-register=NOT_SPONSORED rule only applies when we actually matched a company.
-      if (!company) return;
-      chrome.storage.local.get("sponsors", ({ sponsors }) => {
-        // ponytail: index not fetched yet (first install) -> stay silent instead of
-        // showing a false "Not sponsored". Ceiling: first-run pages get no banner.
-        // Upgrade: pre-seed index in the packaged extension.
-        if (sponsors === undefined) return;
+      if (!company) {
+        // ponytail: auto stays silent, but manual MUST resolve the LOADING
+        // state — returning here left "Checking…" hanging forever.
+        if (force) showBanner("UNKNOWN");
+        return;
+      }
+      getSponsors((sponsors) => {
+        if (!sponsors) { if (force) showBanner("UNKNOWN"); return; }
         showBanner(sponsors[normalizeName(company)] ? "MAY_SPONSOR" : "NOT_SPONSORED");
       });
     });
