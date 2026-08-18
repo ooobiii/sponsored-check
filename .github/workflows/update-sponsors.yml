@@ -5,6 +5,7 @@ on:
   workflow_dispatch: {}
 permissions:
   contents: write
+  issues: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,3 +19,9 @@ jobs:
           git add sponsors.json
           git diff --cached --quiet || git commit -m "Update sponsor index"
           git push
+      - name: Open issue on failure
+        if: failure()
+        run: |
+          gh issue list --state open --search "Sponsor index update failed" --json number -q '.[0].number' | grep -q . || \
+            gh issue create --title "Sponsor index update failed" \
+              --body "The daily sponsor index update failed. Check the run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

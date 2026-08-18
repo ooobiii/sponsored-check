@@ -155,7 +155,7 @@
     if (!el) {
       el = document.createElement("div");
       el.id = "sponsored-check-banner";
-      el.innerHTML = '<span id="sc-text"></span><button id="sc-close" aria-label="Dismiss">\u00d7</button>';
+      el.innerHTML = '<span id="sc-text"></span><a id="sc-report" target="_blank" rel="noopener">Wrong verdict?</a><button id="sc-close" aria-label="Dismiss">\u00d7</button>';
       el.querySelector("#sc-close").addEventListener("click", () => el.remove());
       document.documentElement.appendChild(el);
     }
@@ -167,6 +167,17 @@
       MAY_SPONSOR: "Company is a licensed sponsor \u2014 role doesn't state sponsorship",
       UNKNOWN: "Couldn't determine sponsorship for this page",
     }[state];
+    const report = el.querySelector("#sc-report");
+    // Feedback loop: one click opens the pre-filled issue template. Hidden
+    // while loading — pointless during "Analysing…".
+    if (state === "LOADING") {
+      report.hidden = true;
+    } else {
+      report.hidden = false;
+      report.href =
+        "https://github.com/ooobiii/sponsored-check/issues/new?template=false-verdict.md&title=" +
+        encodeURIComponent("Wrong verdict on " + location.hostname);
+    }
   }
 
   // Read the index once per page; repeat analyzes hit memory, not storage.
@@ -237,6 +248,8 @@
     #sponsored-check-banner[data-state=MAY_SPONSOR]::before{background:#9a6700}
     #sc-close{background:none;border:none;color:#6e7781;font-size:15px;cursor:pointer;padding:0;line-height:1;margin-left:2px}
     #sc-close:hover{color:#24292f}
+    #sc-report{color:#6e7781;font-size:11px;text-decoration:none;margin-left:4px;white-space:nowrap}
+    #sc-report:hover{text-decoration:underline}
     @keyframes scFade{from{opacity:0}to{opacity:1}}
     @keyframes scPulse{50%{opacity:.35}}`;
   document.head.appendChild(style);
