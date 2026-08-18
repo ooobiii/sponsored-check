@@ -25,10 +25,31 @@
     /welcome2thejungle\.com\/(?:[a-z]{2}\/)?jobs\//,
     /welcometothejungle\.com\/(?:[a-z]{2}\/)?jobs\//,
     /oraclecloud\.com\/hcmUI\/CandidateExperience\/.*\/job\/\d+/,
+    /teamtailor\.com\/jobs\/\d+/,
   ];
 
+  function hasJobPostingSchema() {
+    for (const s of document.querySelectorAll('script[type="application/ld+json"]')) {
+      let data;
+      try { data = JSON.parse(s.textContent); } catch { continue; }
+      if (findType(data, "JobPosting")) return true;
+    }
+    return false;
+  }
+
+  function findType(node, type) {
+    if (!node || typeof node !== "object") return false;
+    if (Array.isArray(node)) return node.some((i) => findType(i, type));
+    if (node["@type"] === type || (Array.isArray(node["@type"]) && node["@type"].includes(type))) return true;
+    for (const v of Object.values(node)) if (findType(v, type)) return true;
+    return false;
+  }
+
   function isJobPage() {
-    return JOB_RE.some((re) => re.test(location.href));
+    // URL fast-path + universal signal: JobPosting JSON-LD is emitted by every
+    // job platform (Teamtailor, Oracle HCM, Workday, Greenhouse, Workable...),
+    // so newly-encountered platforms work once their host is allowlisted.
+    return JOB_RE.some((re) => re.test(location.href)) || hasJobPostingSchema();
   }
 
   // Platform/placeholder site names are NOT employers — looking one up against
